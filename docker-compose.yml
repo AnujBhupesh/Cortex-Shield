@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: secure-ai-inference-gateway
+    environment:
+      - SERVICE_NAME=secure-ai-inference-gateway
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8000
+
+      # Upstream provider (OpenAI-compatible)
+      - UPSTREAM_BASE_URL=${UPSTREAM_BASE_URL:-https://api.openai.com}
+      - UPSTREAM_API_KEY=${UPSTREAM_API_KEY:-}
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+
+      # Guardrails & rate limiting
+      - RATE_LIMIT_RPM=100
+      - ENABLE_PRESIDIO=true
+      - BLOCK_ON_PROMPT_INJECTION=true
+
+      # Headers
+      - REQUEST_ID_HEADER=X-Request-Id
+      - CLIENT_ID_HEADER=X-Client-Id
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: secure-ai-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
